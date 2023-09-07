@@ -1,0 +1,49 @@
+from django.db import models
+from django.core.exceptions import ValidationError
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+
+
+class User(AbstractUser):
+    """Кастомная модель User"""
+
+    confirmation_code = models.CharField(
+        verbose_name='токен пользователя',
+        max_length=100,
+        blank=True,
+        null=True,
+    )
+
+    class Meta:
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+        ordering = ('id',)
+
+    def __str__(self):
+        return self.username
+
+
+class Follow(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='follower',
+        verbose_name='Подписчик',
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='following',
+        verbose_name='Отслеживаемый',
+    )
+    created = models.DateTimeField('Дата комментария', auto_now_add=True)
+
+    def clean(self):
+        super().clean()
+        if self.user == self.author:
+            raise ValidationError('Нельзя подписаться на самого себя!')
+
+    class Meta:
+        ordering = ['-created']
+        verbose_name = 'Подпискa'
+        verbose_name_plural = 'Подписки'
