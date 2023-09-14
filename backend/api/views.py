@@ -1,4 +1,8 @@
-from django.shortcuts import render, get_object_or_404
+from django.conf import settings
+from django.contrib.auth.tokens import default_token_generator
+from django.shortcuts import render, get_object_or_404, redirect
+from django.db import IntegrityError
+from django.urls import reverse
 from rest_framework import (
     filters,
     mixins,
@@ -7,36 +11,75 @@ from rest_framework import (
     viewsets,
 )
 from rest_framework.response import Response
-from users.models import User
+from rest_framework_simplejwt.tokens import AccessToken
+from users.models import(
+    User,
+    Subscription
+) 
 from recipes.models import(
     Ingredient,
     Recipe,
     ShoppingList,
     Tag
 )
-
+from django.contrib.auth import update_session_auth_hash
 from .serializers import (
     
     IngredientSerializer,
-    RecipeSerializer,
+    RecipeReadSerializer,
+    RecipeWriteSerializer,
     ShoppingListSerializer,
+    SubscriptionSerializer,
     TagSerializer,
+    UserCreateSerializer,
+    UserRecieveTokenSerializer,
     UserSerializer
+
 )
+from rest_framework.mixins import (
+    ListModelMixin,
+    RetrieveModelMixin
+)
+
+from .utils import send_confirmation_code
+from .permissions import IsAdminSelf, IsAdminOrReadOnly
 from rest_framework.decorators import action
 
-class IngredientViewSet(viewsets.ModelViewSet):
+class IngredientViewSet(
+    mixins.ListModelMixin, 
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet
+    ):
     """Ингридиенты для API."""
 
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
+    pagination_class = None
+    permission_classes = (permissions.AllowAny,)
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
     """Рецепт для API."""
     
     queryset = Recipe.objects.all()
-    serializer_class = RecipeSerializer
+
+    def get_serializer_class(self):
+        """Выбор сериалайзера в зависимости от метода запроса."""
+        if self.action in ('list', 'retrieve'):
+            return RecipeReadSerializer
+        return RecipeWriteSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(
+            author=self.request.user,
+        )
+        created_object = serializer.instance
+
+        # Создайте URL для объекта, используя reverse
+        created_object_url = reverse('api:recipe-detail', args=[created_object.id])
+
+        # Верните перенаправление на созданный объект
+        return Response({'url': created_object_url}, status=status.HTTP_201_CREATED)
 
 
 class ShoppingListViewSet(viewsets.ModelViewSet):
@@ -46,20 +89,116 @@ class ShoppingListViewSet(viewsets.ModelViewSet):
     serializer_class = ShoppingListSerializer
 
 
-class TagViewSet(viewsets.ModelViewSet):
+class TagViewSet(
+    mixins.ListModelMixin, 
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet
+    ):
     """Тэг для API."""
     
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+    pagination_class = None
+    permission_classes = (permissions.AllowAny,)
+
+class SubscriptionsViewSet(viewsets.ModelViewSet):
+    queryset = Subscription.objects.all()
+    serializer_class = SubscriptionSerializer
+    
+
+    def create(self, request, *args, **kwargs):
+        user_id = kwargs.get('user_id')
+        author = get_object_or_404(User, id=user_id)
+        subscription = Subscription(user=request.user, author=author)
+        
+        #subscription.save()
+        
+        serializer = SubscriptionSerializer(subscription)
+        serializer = SubscriptionSerializer(data=serializer.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            print(serializer.data)
+            # Если данные не валидны, возвращаем ошибку
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def get_queryset(self):
+        """Получение подписок через API."""
+        user = self.request.user
+        return super().get_queryset().filter(user=user)
 
 
-class UserViewSet(mixins.ListModelMixin,
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = (IsAdminSelf,)
+
+    
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            user.set_password(request.data['password'])
+            user.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(
+        detail=False,
+        methods=['get', 'patch'],
+        url_path='me',
+        url_name='me',
+        permission_classes=(permissions.IsAuthenticated,)
+    )
+    
+    def get_me_data(self, request):
+        """
+        Позволяет пользователю получить подробную информацию о себе
+        и редактировать её.
+        """
+        if request.method == 'PATCH':
+            serializer = UserSerializer(
+                request.user, data=request.data,
+                partial=True, context={'request': request}
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save(role=request.user.role)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        serializer = UserSerializer(request.user, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @action(
+        detail=False,
+        methods=['post',],
+        url_path='set_password',
+        url_name='set_password',
+        permission_classes=(permissions.IsAuthenticated,)
+    )
+    def change_password(self, request):
+        user = request.user
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
+    
+        if not user.check_password(current_password):
+            return Response({'error': 'Текущий пароль введен неверно'}, status=status.HTTP_400_BAD_REQUEST)
+    
+        user.set_password(new_password)
+        user.save()
+        update_session_auth_hash(request, user)
+    
+        return Response({'message': 'Пароль успешно изменен'}, status=status.HTTP_200_OK)
+
+
+
+'''class UserViewSet(mixins.ListModelMixin,
                   mixins.CreateModelMixin,
                   viewsets.GenericViewSet):
     """Вьюсет для обьектов модели User."""
 
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = (permissions.AllowAny,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('username',)
 
@@ -109,3 +248,58 @@ class UserViewSet(mixins.ListModelMixin,
             return Response(serializer.data, status=status.HTTP_200_OK)
         serializer = UserSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class UserCreateViewSet(mixins.CreateModelMixin,
+                        viewsets.GenericViewSet):
+    """Вьюсет для создания обьектов класса User."""
+
+    queryset = User.objects.all()
+    serializer_class = UserCreateSerializer
+    permission_classes = (permissions.AllowAny,)
+
+    def create(self, request):
+        """Создает объект класса User.
+        Отправляет на почту пользователя код подтверждения.
+        """
+        serializer = UserCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            user = User.objects.get_or_create(
+                username=serializer.validated_data['username'],
+                email=serializer.validated_data['email'],
+            )[settings.CREATE_USER_INDEX]
+        except IntegrityError:
+            return Response(
+                'Имя пользователя или электронная почта занята.',
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        confirmation_code = default_token_generator.make_token(user)
+        send_confirmation_code(
+            email=user.email,
+            confirmation_code=confirmation_code
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class UserReceiveTokenViewSet(mixins.CreateModelMixin,
+                              viewsets.GenericViewSet):
+    """Вьюсет для получения пользователем JWT токена."""
+
+    queryset = User.objects.all()
+    serializer_class = UserRecieveTokenSerializer
+    permission_classes = (permissions.AllowAny,)
+
+    def create(self, request, *args, **kwargs):
+        """Предоставляет пользователю JWT токен по коду подтверждения."""
+        serializer = UserRecieveTokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        username = serializer.validated_data.get('username')
+        confirmation_code = serializer.validated_data.get('confirmation_code')
+        user = get_object_or_404(User, username=username)
+
+        if not default_token_generator.check_token(user, confirmation_code):
+            message = {'confirmation_code': 'Код подтверждения невалиден'}
+            return Response(message, status=status.HTTP_400_BAD_REQUEST)
+        message = {'token': str(AccessToken.for_user(user))}
+        return Response(message, status=status.HTTP_200_OK)'''

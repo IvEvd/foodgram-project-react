@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.core.validators import MaxValueValidator, MinValueValidator
 from users.models import User
+from webcolors import CSS3_HEX_TO_NAMES, name_to_hex
+from colorfield.fields import ColorField
 
 
 class Recipe(models.Model):
@@ -16,14 +19,22 @@ class Recipe(models.Model):
         default=None
     )
     text = models.TextField('Инструкции по приготовлению')
-    ingredient = models.ManyToManyField(
+    ingredients = models.ManyToManyField(
         'Ingredient',
         verbose_name='Ингредиент',
         through='RecipeIngredient',
         through_fields=('recipe', 'ingredient')
     )
     cooking_time = models.DurationField('Время готовки')
-    tag = models.ManyToManyField(
+    
+    '''cooking_time = models.IntegerField(
+        'Время готовки',
+        default=1,
+        validators=[
+            MaxValueValidator(300),
+            MinValueValidator(1)
+        ])'''
+    tags = models.ManyToManyField(
         'Tag',
         verbose_name='Тэг',
         through='RecipeTag',
@@ -67,7 +78,7 @@ class Tag(models.Model):
     """Модель тэга"""
     name = models.CharField('Название тэга', max_length=256, unique=True)
     slug = models.SlugField('Слаг тэга', max_length=50, unique=True)
-    color = models.CharField(max_length=7)
+    color = ColorField(default='#FF0000')
 
     class Meta:
         verbose_name = 'Тэг'

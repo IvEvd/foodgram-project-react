@@ -10,7 +10,11 @@ from .views import (
     ShoppingListViewSet,
     TagViewSet,
     UserViewSet,
+    SubscriptionsViewSet
+    
 )
+'''UserCreateViewSet,
+    UserReceiveTokenViewSet'''
 
 app_name = 'api'
 
@@ -18,31 +22,24 @@ router = routers.DefaultRouter()
 router.register(r'ingredients', IngredientViewSet)
 router.register(r'recipes', RecipeViewSet)
 router.register(r'tags', TagViewSet)
+router.register(r'users/subscriptions', SubscriptionsViewSet)
+router.register(r'users/(?P<user_id>\d+)/subscribe', SubscriptionsViewSet)
 router.register(r'users', UserViewSet)
 
-'''router.register(
-    r'titles/(?P<title_id>\d+)/reviews',
-    viewset=ReviewViewSet,
-    basename='reviews'
-)
-router.register(
-    r'titles/(?P<title_id>\d+)/reviews/(?P<review_id>\d+)/comments',
-    viewset=CommentViewSet,
-    basename='comments'
-)'''
 
 urlpatterns = [
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.authtoken')),
     path('auth/', include('djoser.urls.jwt')),
     path('', include(router.urls)),
+    
 ]
 
 '''path(
-        'auth/signup/',
+        'users/signup/',
         UserCreateViewSet.as_view({'post': 'create'})
     ),
     path(
         'auth/token/',
         UserReceiveTokenViewSet.as_view({'post': 'create'})
-    ),'''
+    )'''

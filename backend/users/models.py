@@ -3,9 +3,26 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+from .enum import UserRoles
+
 
 class User(AbstractUser):
     """Кастомная модель User"""
+
+    USER = "user"
+    ADMIN = 'admin'
+
+    roles = [
+        (USER, USER),
+        (ADMIN, ADMIN),
+    ]
+
+    role = models.CharField(
+        'Статус пользователя',
+        max_length=9,
+        choices=roles,
+        default=USER
+    )
 
     confirmation_code = models.CharField(
         verbose_name='токен пользователя',
@@ -21,9 +38,13 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
+    
+    @property
+    def is_subscribed(self):
+        return self.follower.filter(author=self.profile_user).exists()
 
 
-class Follow(models.Model):
+class Subscription(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -35,7 +56,7 @@ class Follow(models.Model):
         on_delete=models.CASCADE,
         related_name='following',
         verbose_name='Отслеживаемый',
-    )
+        )
     created = models.DateTimeField('Дата комментария', auto_now_add=True)
 
     def clean(self):
