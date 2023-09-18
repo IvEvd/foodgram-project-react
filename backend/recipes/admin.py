@@ -1,10 +1,10 @@
 from django.contrib import admin
 from django import forms
 from webcolors import CSS3_HEX_TO_NAMES
-from .models import Ingredient, Recipe,ShoppingList, Tag
+from .models import Ingredient, Recipe, ShoppingCart, Tag
 
 
-admin.site.register(ShoppingList)
+admin.site.register(ShoppingCart)
 
 
 @admin.register(Tag)

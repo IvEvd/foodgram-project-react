@@ -17,18 +17,21 @@ from users.models import(
     Subscription
 ) 
 from recipes.models import(
+    Favourite,
     Ingredient,
     Recipe,
-    ShoppingList,
+    RecipeTag,
+    RecipeIngredient,
+    ShoppingCart,
     Tag
 )
 from django.contrib.auth import update_session_auth_hash
 from .serializers import (
-    
+    FavouriteSerializer,
     IngredientSerializer,
     RecipeReadSerializer,
     RecipeWriteSerializer,
-    ShoppingListSerializer,
+    ShoppingCartSerializer,
     SubscriptionSerializer,
     TagSerializer,
     UserCreateSerializer,
@@ -60,7 +63,6 @@ class IngredientViewSet(
 
 class RecipeViewSet(viewsets.ModelViewSet):
     """Рецепт для API."""
-    
     queryset = Recipe.objects.all()
 
     def get_serializer_class(self):
@@ -68,8 +70,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if self.action in ('list', 'retrieve'):
             return RecipeReadSerializer
         return RecipeWriteSerializer
-
+    
     def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+        print(serializer.instance)
+        read_serializer = RecipeReadSerializer(serializer.instance, context={'request': self.request,})
+        return Response(read_serializer.data, status=status.HTTP_201_CREATED)
+    
+    
+    '''def perform_create(self, serializer):
         serializer.save(
             author=self.request.user,
         )
@@ -79,14 +88,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
         created_object_url = reverse('api:recipe-detail', args=[created_object.id])
 
         # Верните перенаправление на созданный объект
-        return Response({'url': created_object_url}, status=status.HTTP_201_CREATED)
+        return Response({'url': created_object_url}, status=status.HTTP_201_CREATED)'''
 
 
-class ShoppingListViewSet(viewsets.ModelViewSet):
+class ShoppingCartViewSet(viewsets.ModelViewSet):
     """Список покупок для API."""
     
-    queryset = ShoppingList.objects.all()
-    serializer_class = ShoppingListSerializer
+    queryset = ShoppingCart.objects.all()
+    serializer_class = ShoppingCartSerializer
 
 
 class TagViewSet(
@@ -109,10 +118,8 @@ class SubscriptionsViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         user_id = kwargs.get('user_id')
         author = get_object_or_404(User, id=user_id)
+
         subscription = Subscription(user=request.user, author=author)
-        
-        #subscription.save()
-        
         serializer = SubscriptionSerializer(subscription)
         serializer = SubscriptionSerializer(data=serializer.data)
         if serializer.is_valid():
@@ -120,8 +127,49 @@ class SubscriptionsViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             print(serializer.data)
-            # Если данные не валидны, возвращаем ошибку
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['DELETE'])
+    def delete(self, request, pk=None, *args, **kwargs):
+        user_id = kwargs.get('user_id')
+        author = get_object_or_404(User, id=user_id)
+        subscription = get_object_or_404(Subscription, user=request.user, author=author)
+        self.perform_destroy(subscription)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+    def get_queryset(self):
+        """Получение подписок через API."""
+        user = self.request.user
+        return super().get_queryset().filter(user=user)
+    
+
+
+class FavouriteViewSet(viewsets.ModelViewSet):
+    queryset = Favourite.objects.all()
+    serializer_class = FavouriteSerializer
+    
+
+    def create(self, request, *args, **kwargs):
+        recipe_id = kwargs.get('recipe_id')
+        recipe = get_object_or_404(Recipe, id=recipe_id)
+
+        favourite = Favourite(user=request.user, recipe=recipe)
+        serializer = FavouriteSerializer(favourite)
+        serializer = FavouriteSerializer(data=serializer.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            print(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['DELETE'])
+    def delete(self, request, pk=None, *args, **kwargs):
+        recipe_id = kwargs.get('recipe_id')
+        recipe = get_object_or_404(Recipe, id=recipe_id)
+        favourite = get_object_or_404(Favourite, user=request.user, recipe=recipe)
+        self.perform_destroy(favourite)
+        return Response(status=status.HTTP_204_NO_CONTENT)
     
     def get_queryset(self):
         """Получение подписок через API."""
@@ -132,7 +180,7 @@ class SubscriptionsViewSet(viewsets.ModelViewSet):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = (IsAdminSelf,)
+    permission_classes = (permissions.AllowAny,)
 
     
     def create(self, request, *args, **kwargs):

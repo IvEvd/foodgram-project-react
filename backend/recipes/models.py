@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.exceptions import ValidationError
 from users.models import User
 from webcolors import CSS3_HEX_TO_NAMES, name_to_hex
 from colorfield.fields import ColorField
@@ -23,17 +24,11 @@ class Recipe(models.Model):
         'Ingredient',
         verbose_name='Ингредиент',
         through='RecipeIngredient',
-        through_fields=('recipe', 'ingredient')
+        through_fields=('recipe', 'ingredient'),
+        related_name='recipe_ingredients'
     )
     cooking_time = models.DurationField('Время готовки')
     
-    '''cooking_time = models.IntegerField(
-        'Время готовки',
-        default=1,
-        validators=[
-            MaxValueValidator(300),
-            MinValueValidator(1)
-        ])'''
     tags = models.ManyToManyField(
         'Tag',
         verbose_name='Тэг',
@@ -44,19 +39,18 @@ class Recipe(models.Model):
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
         ordering = ('name',)
+    
+    @property
+    def is_favorited(self):
+        return self.favourite_recipe.filter(recipe_liker=self.profile_user).exists()
 
-class ShoppingList(models.Model):
+class ShoppingCart(models.Model):
     author = models.OneToOneField(User, verbose_name='Автор списка покупок', on_delete=models.CASCADE)
-    name = models.CharField(
-        'Название списка покупок',
-        max_length=256,
-        default='Список покупок'
-    )
     recipe = models.ManyToManyField(
         'Recipe',
         verbose_name='рецепты',
-        through='ShoppingListRecipe',
-        through_fields=('shopping_list', 'recipe'))
+        through='ShoppingCartRecipe',
+        through_fields=('shopping_cart', 'recipe'))
     
     class Meta:
         verbose_name = 'Список покупок'
@@ -65,14 +59,21 @@ class ShoppingList(models.Model):
 
 class Ingredient(models.Model):
     """Модель ингредиента"""
-    name = models.CharField('Название ингредиента', max_length=256)
-    amount = models.DecimalField('Количество ингредиента', max_digits=7, decimal_places=3)
-    measurement_units = models.CharField('Единицы измерения', max_length=256)
+    name = models.CharField('Название ингредиента', max_length=100)
+    measurement_units = models.CharField('Единицы измерения', max_length=100)
+    
 
     class Meta:
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
         ordering = ('name',)
+
+        
+        '''constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'recipe'],
+                name='unique_favourite',
+                )]'''
 
 class Tag(models.Model):
     """Модель тэга"""
@@ -89,11 +90,32 @@ class Tag(models.Model):
 class RecipeIngredient(models.Model):
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
+    amount = models.DecimalField('Количество ингредиента', max_digits=7, decimal_places=3, default=0)
 
 class RecipeTag(models.Model):
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
     tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
 
-class ShoppingListRecipe(models.Model):
-    shopping_list = models.ForeignKey(ShoppingList, on_delete=models.CASCADE)
+class ShoppingCartRecipe(models.Model):
+    shopping_cart = models.ForeignKey(ShoppingCart, on_delete=models.CASCADE)
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
+
+class Favourite(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='recipe_liker',
+        verbose_name='Добавил в избранное',
+    )
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='favourite_recipe')
+    created = models.DateTimeField('Дата комментария', auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created']
+        verbose_name = 'Избранное'
+        verbose_name_plural = 'Избранные рецепты'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'recipe'],
+                name='unique_favourite',
+                )]

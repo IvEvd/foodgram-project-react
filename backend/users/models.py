@@ -68,3 +68,8 @@ class Subscription(models.Model):
         ordering = ['-created']
         verbose_name = 'Подпискa'
         verbose_name_plural = 'Подписки'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'author'],
+                name='unique_subscription',
+                )]
