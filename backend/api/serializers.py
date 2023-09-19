@@ -1,4 +1,5 @@
 """Сериализаторы для api_foodgram."""
+from datetime import timedelta
 from decimal import Decimal
 from django.forms import ValidationError
 from django.shortcuts import get_object_or_404
@@ -16,6 +17,7 @@ from recipes.models import(
     RecipeIngredient,
     Ingredient,
     ShoppingCart,
+    ShoppingCartRecipe,
     Tag,
 )
 
@@ -60,13 +62,43 @@ class TagSerializer(serializers.ModelSerializer):
         model = Tag
 
 
-class ShoppingCartSerializer(serializers.ModelSerializer):
-    """Сериализатор для списка покупок."""
+class ShoppingCartReadSerializer(serializers.ModelSerializer):
+    """Сериализатор для создания файла списка покупок."""
+    name = serializers.CharField(source='recipe.name', read_only=True)
+    image = serializers.ImageField(source='recipe.image', read_only=True)
+    cooking_time = serializers.DurationField(source='recipe.cooking_time', read_only=True)
+    
+    class Meta:
+        fields = ('id','name', 'image', 'cooking_time')
+        model = ShoppingCartRecipe
+
+
+class ShoppingCartWriteSerializer(serializers.ModelSerializer):
+    """Сериализатор для добавления рецепта в список покупок."""
+
+    def validate(self, data):
+        recipe = data.get('recipe')
+        shopping_cart = data.get('shopping_cart')
+        print(shopping_cart)
+        request = self.context.get('request')
+        if ShoppingCartRecipe.objects.filter(
+                shopping_cart=shopping_cart, recipe=recipe
+            ).exists():
+            raise ValidationError(
+                    'Добавить рецепт в избранное можно только один раз')
+        return data
+    
+    '''def to_representation(self, instance):
+        read_serializer = ShoppingCartReadSerializer(instance, context=self.context)
+        return read_serializer.data'''
+    
+    name = serializers.CharField(source='recipe.name', read_only=True)
+    image = serializers.ImageField(source='recipe.image', read_only=True)
+    cooking_time = serializers.DurationField(source='recipe.cooking_time', read_only=True)
 
     class Meta:
-        fields = '__all__'
-        model = ShoppingCart
-
+        fields = ('__all__')
+        model = ShoppingCartRecipe
 
 class UserSerializer(serializers.ModelSerializer):
     """Сериализатор для модели User"""
@@ -160,15 +192,28 @@ class RecipeReadSerializer(serializers.ModelSerializer):
     image = serializers.ImageField()
     ingredients = RecipeIngredientReadSerializer(many=True, source='recipeingredient_set')
     is_favorited = serializers.SerializerMethodField()
+    is_in_shopping_cart = serializers.SerializerMethodField()
 
+    '''def to_representation(self, instance):
+        cooking_time = instance.cooking_time
+        instance.cooking_time = cooking_time
+        return super().to_representation(instance)'''
+    
     def get_is_favorited(self, obj):
         user = self.context['request'].user
         if not self.context['request'].user.is_anonymous:
             return obj.favourite_recipe.filter(user=user).exists()
         return False
     
+    def get_is_in_shopping_cart(self, obj):
+        user = self.context['request'].user
+        shopping_cart = get_object_or_404(ShoppingCart, author=user)
+        if not self.context['request'].user.is_anonymous:
+            return obj.shopping_cart.filter(shopping_cart=shopping_cart).exists()
+        return False
+    
     class Meta:
-        fields = ('id', 'tags', 'author', 'ingredients', 'is_favorited', 'name', 'image', 'text', 'cooking_time',)
+        fields = ('id', 'tags', 'author', 'ingredients', 'is_favorited', 'is_in_shopping_cart', 'name', 'image', 'text', 'cooking_time',)
         model = Recipe
         depth = 1
 
@@ -178,6 +223,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
     ingredients = RecipeIngredientSerializer(many=True)
     author = serializers.PrimaryKeyRelatedField(read_only=True)
     image = Base64ImageField()
+    cooking_time = serializers.DurationField()
 
     class Meta:
         fields = ('id', 'tags', 'author', 'ingredients', 'name', 'image', 'text', 'cooking_time',)
@@ -196,7 +242,6 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             amount = ingredient_data.get('amount')
             ingredient_id = ingredient_data.get('id').id
             recipe_ingredient = get_object_or_404(Ingredient, id=ingredient_id)
-            print(recipe_ingredient)
             RecipeIngredient.objects.create(
             ingredient=recipe_ingredient, recipe=recipe, amount=amount) 
         return recipe
@@ -204,6 +249,12 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         read_serializer = RecipeReadSerializer(instance, context=self.context)
         return read_serializer.data
+    
+    def to_internal_value(self, data):
+        cooking_time = data.get('cooking_time')
+        if cooking_time:
+            data['cooking_time'] = timedelta(minutes=int(cooking_time))
+        return super().to_internal_value(data)
 
     
 
@@ -234,11 +285,11 @@ class SubscriptionSerializer(serializers.ModelSerializer):
 class FavouriteSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
-        recipe = data.get('recipe_id')
+        recipe = data.get('recipe')
         user = data.get('user')
         request = self.context.get('request')
         if Favourite.objects.filter(
-                user=user
+                user=user, recipe=recipe
             ).exists():
             raise ValidationError(
                     'Добавить рецепт в избранное можно только один раз')

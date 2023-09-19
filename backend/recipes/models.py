@@ -11,7 +11,7 @@ class Recipe(models.Model):
     """Модель рецепта"""
 
     name = models.CharField('Название рецепта', max_length=256)
-    author = models.ForeignKey(User, verbose_name='Автор рецепта', on_delete=models.CASCADE)
+    author = models.ForeignKey(User, verbose_name='Автор рецепта', on_delete=models.CASCADE, related_name='recipe_author')
     image = models.ImageField(
         'Изображение блюда',
         upload_to='recipes/images/',
@@ -43,6 +43,14 @@ class Recipe(models.Model):
     @property
     def is_favorited(self):
         return self.favourite_recipe.filter(recipe_liker=self.profile_user).exists()
+    
+    @property
+    def is_in_shopping_cart(self):
+        shopping_cart = ShoppingCart.objects.get(author=self.profile_user)
+        return self.shopping_cart_recipe.filter(shopping_cart=shopping_cart).exists()
+    
+    def __str__(self):
+        return self.name
 
 class ShoppingCart(models.Model):
     author = models.OneToOneField(User, verbose_name='Автор списка покупок', on_delete=models.CASCADE)
@@ -98,7 +106,7 @@ class RecipeTag(models.Model):
 
 class ShoppingCartRecipe(models.Model):
     shopping_cart = models.ForeignKey(ShoppingCart, on_delete=models.CASCADE)
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, blank=True, related_name='shopping_cart')
 
 class Favourite(models.Model):
     user = models.ForeignKey(

@@ -23,6 +23,7 @@ from recipes.models import(
     RecipeTag,
     RecipeIngredient,
     ShoppingCart,
+    ShoppingCartRecipe,
     Tag
 )
 from django.contrib.auth import update_session_auth_hash
@@ -31,7 +32,8 @@ from .serializers import (
     IngredientSerializer,
     RecipeReadSerializer,
     RecipeWriteSerializer,
-    ShoppingCartSerializer,
+    ShoppingCartReadSerializer,
+    ShoppingCartWriteSerializer,
     SubscriptionSerializer,
     TagSerializer,
     UserCreateSerializer,
@@ -73,29 +75,57 @@ class RecipeViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
-        print(serializer.instance)
         read_serializer = RecipeReadSerializer(serializer.instance, context={'request': self.request,})
         return Response(read_serializer.data, status=status.HTTP_201_CREATED)
-    
-    
-    '''def perform_create(self, serializer):
-        serializer.save(
-            author=self.request.user,
-        )
-        created_object = serializer.instance
-
-        # Создайте URL для объекта, используя reverse
-        created_object_url = reverse('api:recipe-detail', args=[created_object.id])
-
-        # Верните перенаправление на созданный объект
-        return Response({'url': created_object_url}, status=status.HTTP_201_CREATED)'''
 
 
 class ShoppingCartViewSet(viewsets.ModelViewSet):
     """Список покупок для API."""
-    
+
     queryset = ShoppingCart.objects.all()
-    serializer_class = ShoppingCartSerializer
+
+    
+    def get_serializer_class(self):
+        """Выбор сериалайзера в зависимости от метода запроса."""
+        if self.action in ('list', 'retrieve'):
+            return ShoppingCartReadSerializer
+        return ShoppingCartWriteSerializer
+    
+    def get_queryset(self):
+        """Получение подписок через API."""
+        user = self.request.user
+        return super().get_queryset().filter(user=user)
+    
+    def create(self, request, *args, **kwargs):
+        recipe_id = kwargs.get('recipe_id')
+        recipe = get_object_or_404(Recipe, id=recipe_id)
+        shopping_cart, created = ShoppingCart.objects.get_or_create(author=self.request.user)
+        if created:
+            shopping_cart.save()
+        shopping_cart_recipe = ShoppingCartRecipe(shopping_cart=shopping_cart, recipe=recipe)
+
+        serializer = ShoppingCartWriteSerializer(shopping_cart_recipe)
+        serializer = ShoppingCartWriteSerializer(data=serializer.data)
+        
+
+        if serializer.is_valid():
+            serializer.save()
+            read_serializer = ShoppingCartReadSerializer(serializer.instance, context={'request': self.request,})
+            return Response(read_serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['DELETE'])
+    def delete(self, request, pk=None, *args, **kwargs):
+        recipe_id = kwargs.get('recipe_id')
+        recipe = get_object_or_404(Recipe, id=recipe_id)
+        shopping_cart = get_object_or_404(ShoppingCart, author=self.request.user)
+        shopping_cart_recipe = get_object_or_404(ShoppingCartRecipe, shopping_cart=shopping_cart, recipe=recipe)
+        self.perform_destroy(shopping_cart_recipe)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    
+    #serializer_class = ShoppingCartSerializer
 
 
 class TagViewSet(
@@ -141,13 +171,12 @@ class SubscriptionsViewSet(viewsets.ModelViewSet):
         """Получение подписок через API."""
         user = self.request.user
         return super().get_queryset().filter(user=user)
-    
 
 
 class FavouriteViewSet(viewsets.ModelViewSet):
     queryset = Favourite.objects.all()
     serializer_class = FavouriteSerializer
-    
+
 
     def create(self, request, *args, **kwargs):
         recipe_id = kwargs.get('recipe_id')
@@ -160,7 +189,6 @@ class FavouriteViewSet(viewsets.ModelViewSet):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
-            print(serializer.data)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=False, methods=['DELETE'])
