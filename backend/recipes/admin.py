@@ -1,7 +1,8 @@
 """Регистрация моделей приложения рецепты в админке."""
 from django.contrib import admin
+from django.db.models import Count
 
-from .models import Ingredient, Recipe, ShoppingCart, Tag
+from .models import Favourite, Ingredient, Recipe, ShoppingCart, Tag
 
 
 admin.site.register(ShoppingCart)
@@ -18,13 +19,25 @@ class MyModelAdmin(admin.ModelAdmin):
 class MyModelAdmin(admin.ModelAdmin):
     """Регистрация рецепта в админке."""
 
-    list_display = ('name', 'author')
-    list_filter = ('tags',)
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(favorited_count=Count('favourite_recipe'))
+
+    def favorited_count(self, obj):
+        return obj.favorited_count
+
+    favorited_count.short_description = 'Количество добавлений в избранное'
+    favorited_count.admin_order_field = 'favorited_count'
+    
+
+    list_display = ('name', 'author', 'favorited_count')
+    list_filter = ('tags','author')
+    search_fields = ('name',)
 
 
 @admin.register(Ingredient)
 class MyModelAdmin(admin.ModelAdmin):
     """Регистрация ингредиента в админке."""
 
+    search_fields = ('name',)
     list_display = ('name', 'measurement_units')
     list_filter = ('name',)

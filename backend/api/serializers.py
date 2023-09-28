@@ -125,8 +125,17 @@ class UserSerializer(serializers.ModelSerializer):
     """Сериализатор для модели User."""
 
     email = serializers.EmailField(max_length=254, required=True)
+    password = serializers.CharField(write_only=True, required=True)
     username = serializers.RegexField(
         regex=r'^[\w.@+-]+$',
+        max_length=150,
+        required=True
+    )
+    first_name = serializers.CharField(
+        max_length=150,
+        required=True
+    )
+    last_name = serializers.CharField(
         max_length=150,
         required=True
     )
@@ -137,6 +146,7 @@ class UserSerializer(serializers.ModelSerializer):
 
         fields = (
             'email',
+            'password',
             'id',
             'username',
             'first_name',
@@ -144,6 +154,20 @@ class UserSerializer(serializers.ModelSerializer):
             'is_subscribed'
         )
         model = User
+    
+    def validate(self, data):
+        """Запрещает пользователям присваивать себе имя me."""
+        username = data.get('username')
+        email = data.get('email')
+        if username == 'me':
+            raise serializers.ValidationError(
+                'Использовать имя me запрещено'
+            )
+        if User.objects.filter(email=email).exists():
+            raise serializers.ValidationError(
+                'Нельзя использовать email повторно'
+            )
+        return data
 
     def get_is_subscribed(self, obj):
         """Получение свойства 'подписан'."""
@@ -151,47 +175,18 @@ class UserSerializer(serializers.ModelSerializer):
             return obj.following.filter(user=self.context['request'].user).exists()
         return False
 
-
-class UserCreateSerializer(serializers.ModelSerializer):
-    """Сериализатор для создания объекта класса User."""
-
-    email = serializers.EmailField(max_length=254, required=True)
-    username = serializers.RegexField(
-        regex=r'^[\w.@+-]+$',
-        max_length=150,
-        required=True
-    )
-
-    class Meta:
-        """Мета класс."""
-
-        fields = (
+class ExcludeIsSubscribedUserSerializer(UserSerializer):
+    
+    
+    class Meta(UserSerializer.Meta):
+         fields = (
+            'email',
+            'password',
+            'id',
             'username',
-            'email'
+            'first_name',
+            'last_name'
         )
-        model = User
-
-    def validate(self, data):
-        """Запрещает пользователям присваивать себе имя me."""
-        if data.get('username') == 'me':
-            raise serializers.ValidationError(
-                'Использовать имя me запрещено'
-            )
-        return data
-
-
-class UserRecieveTokenSerializer(serializers.Serializer):
-    """Сериализатор для объекта класса User при получении токена JWT."""
-
-    username = serializers.RegexField(
-        regex=r'^[\w.@+-]+$',
-        max_length=150,
-        required=True
-    )
-    confirmation_code = serializers.CharField(
-        max_length=150,
-        required=True
-    )
 
 
 class RecipeIngredientReadSerializer(serializers.ModelSerializer):
@@ -260,12 +255,12 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         """Получение свойства 'в списке покупок'."""
         if not self.context['request'].user.is_anonymous:
             user = self.context['request'].user
-            try:
-                shopping_cart = get_object_or_404(ShoppingCart, author=user)
+            if ShoppingCart.objects.filter(author=user).exists():
+                shopping_cart = ShoppingCart.objects.get(author=user)
                 return obj.shopping_cart.filter(
                     shopping_cart=shopping_cart
                     ).exists()
-            finally:
+            else:
                 return False
         return False
 

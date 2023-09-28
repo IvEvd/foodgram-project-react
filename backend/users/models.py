@@ -6,26 +6,7 @@ from django.contrib.auth.models import AbstractUser
 
 class User(AbstractUser):
     """Кастомная модель User."""
-
-    USER = "user"
-    ADMIN = 'admin'
-
-    roles = [
-        (USER, USER),
-        (ADMIN, ADMIN),
-    ]
-    role = models.CharField(
-        'Статус пользователя',
-        max_length=9,
-        choices=roles,
-        default=USER
-    )
-    confirmation_code = models.CharField(
-        verbose_name='токен пользователя',
-        max_length=100,
-        blank=True,
-        null=True,
-    )
+    email = models.EmailField(unique=True)
 
     class Meta:
         """Мета класс."""
@@ -35,7 +16,7 @@ class User(AbstractUser):
         ordering = ('id',)
 
     def __str__(self):
-        """Название объекта."""
+        """Название объекта класса."""
         return self.username
 
     @property

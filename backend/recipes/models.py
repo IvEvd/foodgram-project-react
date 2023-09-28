@@ -8,12 +8,13 @@ from users.models import User
 class Recipe(models.Model):
     """Модель рецепта."""
 
-    name = models.CharField('Название рецепта', max_length=256)
+    name = models.CharField('Название рецепта', max_length=256, unique=True)
     author = models.ForeignKey(
         User,
         verbose_name='Автор рецепта',
-        on_delete=models.CASCADE,
-        related_name='recipe_author'
+        on_delete=models.SET_DEFAULT,
+        related_name='recipe_author',
+        default=1,
     )
     image = models.ImageField(
         'Изображение блюда',
@@ -105,7 +106,7 @@ class Ingredient(models.Model):
 class Tag(models.Model):
     """Модель тэга."""
 
-    name = models.CharField('Название тэга', max_length=256, unique=True)
+    name = models.CharField('Название тэга', max_length=50, unique=True)
     color = ColorField(default='#FF0000')
     slug = models.SlugField('Слаг тэга', max_length=50, unique=True)
 

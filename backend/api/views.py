@@ -36,6 +36,7 @@ from recipes.models import (
 )
 
 from .serializers import (
+    ExcludeIsSubscribedUserSerializer,
     FavouriteSerializer,
     IngredientSerializer,
     RecipeReadSerializer,
@@ -45,8 +46,6 @@ from .serializers import (
     SubscriptionSerializer,
     SubscriptionReadSerializer,
     TagSerializer,
-    UserCreateSerializer,
-    UserRecieveTokenSerializer,
     UserSerializer
 
 )
@@ -75,7 +74,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     """Рецепт для API."""
 
     queryset = Recipe.objects.all()
-    permission_classes = (permissions.AllowAny, )
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly, )
 
     def get_queryset(self):
         """Чтение рецептов с фильтрацией.
@@ -373,7 +372,8 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """Создание пользователя."""
-        serializer = self.get_serializer(data=request.data)
+        
+        serializer = ExcludeIsSubscribedUserSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
             user.set_password(request.data['password'])
