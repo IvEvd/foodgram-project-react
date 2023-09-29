@@ -2,14 +2,12 @@
 from datetime import timedelta
 
 from django.db import transaction
-from django.core.exceptions import ObjectDoesNotExist, EmptyResultSet
 from django.forms import ValidationError
 from django.shortcuts import get_object_or_404
 
 from drf_base64.fields import Base64ImageField
 
 from rest_framework import serializers
-
 
 from recipes.models import (
     Favourite,
@@ -21,7 +19,6 @@ from recipes.models import (
     ShoppingCartRecipe,
     Tag
 )
-
 from users.models import (
     Subscription,
     User
@@ -42,8 +39,8 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
     """Сериализатор для ингридиентов."""
 
     amount = serializers.DecimalField(
-        max_digits=7,  # Максимальное количество цифр в числе
-        decimal_places=3,  # Максимальное количество знаков после запятой
+        max_digits=7,
+        decimal_places=3,
         coerce_to_string=False
     )
 
@@ -58,7 +55,7 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
             'ingredient'
         )
         model = RecipeIngredient
-        depth=3
+        depth = 1
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -102,9 +99,10 @@ class ShoppingCartWriteSerializer(serializers.ModelSerializer):
         shopping_cart = data.get('shopping_cart')
         if ShoppingCartRecipe.objects.filter(
                 shopping_cart=shopping_cart, recipe=recipe
-                ).exists():
+        ).exists():
             raise ValidationError(
-                    'Добавить рецепт в избранное можно только один раз')
+                'Добавить рецепт в избранное можно только один раз'
+            )
         return data
 
     name = serializers.CharField(source='recipe.name', read_only=True)
@@ -154,7 +152,7 @@ class UserSerializer(serializers.ModelSerializer):
             'is_subscribed'
         )
         model = User
-    
+
     def validate(self, data):
         """Запрещает пользователям присваивать себе имя me."""
         username = data.get('username')
@@ -172,14 +170,19 @@ class UserSerializer(serializers.ModelSerializer):
     def get_is_subscribed(self, obj):
         """Получение свойства 'подписан'."""
         if not self.context['request'].user.is_anonymous:
-            return obj.following.filter(user=self.context['request'].user).exists()
+            return obj.following.filter(
+                user=self.context['request'].user
+            ).exists()
         return False
 
-class ExcludeIsSubscribedUserSerializer(UserSerializer):
-    
-    
+
+class UserCreateSerializer(UserSerializer):
+    """Сериализатор создания пользователя."""
+
     class Meta(UserSerializer.Meta):
-         fields = (
+        """Мета класс."""
+
+        fields = (
             'email',
             'password',
             'id',
@@ -222,6 +225,7 @@ class RecipeIngredientReadSerializer(serializers.ModelSerializer):
 
         fields = ('id', 'name', 'measurement_unit', 'amount')
         model = RecipeIngredient
+        depth = 1
 
 
 class RecipeReadSerializer(serializers.ModelSerializer):
@@ -259,7 +263,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
                 shopping_cart = ShoppingCart.objects.get(author=user)
                 return obj.shopping_cart.filter(
                     shopping_cart=shopping_cart
-                    ).exists()
+                ).exists()
             else:
                 return False
         return False
@@ -289,7 +293,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
     tags = serializers.PrimaryKeyRelatedField(
         many=True,
         queryset=Tag.objects.all()
-        )
+    )
     ingredients = RecipeIngredientSerializer(many=True)
     author = serializers.PrimaryKeyRelatedField(read_only=True)
     image = Base64ImageField()
@@ -307,9 +311,8 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             'image',
             'text',
             'cooking_time'
-            )
+        )
         model = Recipe
-        depth=3
 
     @transaction.atomic
     def create(self, validated_data):
@@ -405,13 +408,15 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         user = data.get('user')
         if user == author:
             raise ValidationError(
-                    'Нельзя подписаться на самого себя')
+                'Нельзя подписаться на самого себя'
+            )
         if Subscription.objects.filter(
                 user=user,
                 author=author
-                ).exists():
+        ).exists():
             raise ValidationError(
-                    'Подписаться на пользователя можно только один раз')
+                'Подписаться на пользователя можно только один раз'
+            )
         return data
 
     class Meta:
@@ -471,9 +476,10 @@ class FavouriteSerializer(serializers.ModelSerializer):
         user = data.get('user')
         if Favourite.objects.filter(
                 user=user, recipe=recipe
-                ).exists():
+        ).exists():
             raise ValidationError(
-                    'Добавить рецепт в избранное можно только один раз')
+                'Добавить рецепт в избранное можно только один раз'
+            )
         return data
 
     class Meta:

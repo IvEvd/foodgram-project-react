@@ -1,15 +1,10 @@
 """Загрузка CSV в базу данных."""
-import os
 import csv
+import os
 
-from datetime import datetime
 from django.core.management.base import BaseCommand
-from django.db.utils import IntegrityError
-from django.utils import timezone
-
 from foodgram_backend.settings import BASE_DIR
 from recipes.models import Ingredient
-from users.models import User
 
 data_folder = os.path.join(BASE_DIR, 'data/')
 ingredients_file = 'ingredients.csv'
@@ -26,7 +21,7 @@ class Command(BaseCommand):
     def import_norelatedfield_models(self, *args, **options):
         """
         Загрузка моделей без связанных полей.
-    
+
         При загрузке цифр преобразовывает их в int
         """
         for file_name in file_name_dict:
@@ -45,9 +40,6 @@ class Command(BaseCommand):
                 f"Количество созданных записей {file_name}: {obj_count} "
             ))
 
-    
-
     def handle(self, *args, **options):
         """Главная функция."""
         self.import_norelatedfield_models(self, *args, **options)
-

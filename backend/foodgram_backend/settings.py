@@ -5,7 +5,6 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(override=True)
@@ -20,15 +19,6 @@ if ALLOWED_HOSTS_LIST:
     ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_LIST.split(',')]
 else:
     ALLOWED_HOSTS = []
-
-
-#SECRET_KEY = 'django-insecure-iw04q27hr(ctz5q9gs6t+5n)23m1t%(kii$(mo2p6&$vf$rel('
-#DEBUG = True
-
-#ALLOWED_HOSTS = ['*', 'localhost',]
-
-
-# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -81,8 +71,6 @@ WSGI_APPLICATION = 'foodgram_backend.wsgi.application'
 
 AUTH_USER_MODEL = 'users.User'
 
-# Database
-# https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
 DATABASES = {
     'default': {
@@ -95,8 +83,6 @@ DATABASES = {
     }
 }
 
-# Password validation
-# https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -131,18 +117,13 @@ REST_FRAMEWORK = {
 
 
 DJOSER = {
-    'LOGIN_FIELD':'email', 
-    'HIDE_USERS':'False',
+    'LOGIN_FIELD': 'email',
+    'HIDE_USERS': 'False',
     }
 
 SIMPLE_JWT = {
-   'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-   'AUTH_HEADER_TYPES': ('Bearer',),
    'USER_ID_CLAIM': 'email',
-} 
-
-# Internationalization
-# https://docs.djangoproject.com/en/3.2/topics/i18n/
+}
 
 LANGUAGE_CODE = 'ru-RU'
 
@@ -154,7 +135,6 @@ USE_L10N = True
 
 USE_TZ = True
 
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 STATIC_URL = '/static/'
@@ -164,5 +144,3 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 CREATE_USER_INDEX = 0
-
-SEND_EMAIL = 'noreply@gmail.com'

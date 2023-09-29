@@ -1,11 +1,12 @@
 """Модели пользователей."""
-from django.db import models
-from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
+from django.db import models
 
 
 class User(AbstractUser):
     """Кастомная модель User."""
+
     email = models.EmailField(unique=True)
 
     class Meta:
@@ -39,7 +40,7 @@ class Subscription(models.Model):
         on_delete=models.CASCADE,
         related_name='following',
         verbose_name='Отслеживаемый',
-        )
+    )
     created = models.DateTimeField('Дата комментария', auto_now_add=True)
 
     def clean(self):
@@ -58,4 +59,4 @@ class Subscription(models.Model):
             models.UniqueConstraint(
                 fields=['user', 'author'],
                 name='unique_subscription',
-                )]
+            )]

@@ -1,5 +1,6 @@
 """Модели приложения рецепты."""
 from django.db import models
+
 from colorfield.fields import ColorField
 
 from users.models import User
@@ -183,4 +184,4 @@ class Favourite(models.Model):
             models.UniqueConstraint(
                 fields=['user', 'recipe'],
                 name='unique_favourite',
-                )]
+            )]

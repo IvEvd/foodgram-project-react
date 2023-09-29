@@ -1,42 +1,23 @@
 """Вьюсеты для Foodgram API."""
-from django.contrib.auth import update_session_auth_hash
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import PermissionDenied
-from django.http import FileResponse
 from django.shortcuts import get_object_or_404
+from django.contrib.auth import update_session_auth_hash
 
 from django_filters import rest_framework as djangofilters
 
 from rest_framework import (
-    filters,
     mixins,
     permissions,
     status,
     viewsets,
 )
-from rest_framework.decorators import action, permission_classes
+from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.views import APIView
 
-from users.models import (
-    Subscription,
-    User,
-)
-from recipes.models import (
-    Ingredient,
-    Favourite,
-    Recipe,
-    RecipeIngredient,
-    RecipeTag,
-    ShoppingCart,
-    ShoppingCartRecipe,
-    Tag
-)
-
+from pdf_util.constants import TITLE, PAGEINFO
+from .filters import IngredientFilter
 from .serializers import (
-    ExcludeIsSubscribedUserSerializer,
     FavouriteSerializer,
     IngredientSerializer,
     RecipeReadSerializer,
@@ -46,20 +27,30 @@ from .serializers import (
     SubscriptionSerializer,
     SubscriptionReadSerializer,
     TagSerializer,
+    UserCreateSerializer,
     UserSerializer
-
 )
-
-from .filters import IngredientFilter
-from .permissions import IsAdminSelfOrReadOnly, IsAdminOrReadOnly
 from pdf_util.pdf_create import PdfCreator
+from recipes.models import (
+    Ingredient,
+    Favourite,
+    Recipe,
+    RecipeIngredient,
+    ShoppingCart,
+    ShoppingCartRecipe,
+    Tag
+)
+from users.models import (
+    Subscription,
+    User,
+)
 
 
 class IngredientViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet
-        ):
+):
     """Ингридиенты для API."""
 
     queryset = Ingredient.objects.all()
@@ -245,11 +236,11 @@ class ShoppingCartPrintViewSet(APIView):
                      measurement_units
                      ])
         pdf = PdfCreator(
-            Title='Список покупок',
-            pageinfo='Foodgram project',
+            Title=TITLE,
+            pageinfo=PAGEINFO,
             data=[]
         )
-        empty_list_to_print = [[None]*3]
+        empty_list_to_print = [[None] * 3]
         if list_to_print:
             return pdf.create_pdf_with_table(list_to_print)
         else:
@@ -260,7 +251,7 @@ class TagViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet
-        ):
+):
     """Тэг для API."""
 
     queryset = Tag.objects.all()
@@ -372,8 +363,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """Создание пользователя."""
-        
-        serializer = ExcludeIsSubscribedUserSerializer(data=request.data)
+        serializer = UserCreateSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
             user.set_password(request.data['password'])
