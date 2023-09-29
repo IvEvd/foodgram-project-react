@@ -14,7 +14,7 @@ services:
       - pg_data:/var/lib/postgresql/data
   
   backend:
-    image: ivanevdk/foodgram_backend
+    build: ./backend/
     env_file: .env
     volumes:
       - static:/backend_static
@@ -24,16 +24,16 @@ services:
 
   frontend:
     env_file: .env
-    image: ivanevdk/foodgram_frontend
+    build: ./frontend/
     command: cp -r /app/build/. /frontend_static/
     volumes:
       - static:/frontend_static
   
   nginx:
-    image: ivanevdk/foodgram_nginx
+    build: ./infra/
     env_file: .env
     ports:
-      - 8000:80
+      - 9000:80
     volumes:
       - static:/static
       - ./docs/:/usr/share/nginx/html/api/docs/
