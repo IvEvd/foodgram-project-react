@@ -1,9 +1,9 @@
-name: Main Foodgram workflow
+name: Main Kittygram workflow
 
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   tests:
@@ -61,10 +61,27 @@ jobs:
           context: ./backend/
           push: true
           tags: ivanevdk/foodgram_backend:latest
+  frontend_tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up nodeJS
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
 
+    - name: Install dependencies
+      run: |
+        cd frontend/
+        npm ci
+    - name: Test frontend
+      run: |
+        cd frontend/
+        npm run test
   build_frontend_and_push_to_docker_hub:
     name: Push frontend Docker image to DockerHub
     runs-on: ubuntu-latest
+    needs: frontend_tests
     steps:
       - name: Check out the repo
         uses: actions/checkout@v3
@@ -80,7 +97,7 @@ jobs:
         with:
           context: ./frontend/
           push: true
-          tags: ivanevdk/foodgram_frontend:latest
+          tags: ivanevdk/kittygram_frontend:latest
   build_gateway_and_push_to_docker_hub:
     name: Push gateway Docker image to DockerHub
     runs-on: ubuntu-latest
@@ -97,9 +114,9 @@ jobs:
       - name: Push to DockerHub
         uses: docker/build-push-action@v4
         with:
-          context: ./infra/
+          context: ./nginx/
           push: true
-          tags: ivanevdk/foodgram_nginx:latest
+          tags: ivanevdk/kittygram_gateway:latest
   deploy:
     runs-on: ubuntu-latest
     needs: 
@@ -116,8 +133,8 @@ jobs:
         username: ${{ secrets.USER }}
         key: ${{ secrets.SSH_KEY }}
         passphrase: ${{ secrets.SSH_PASSPHRASE }}
-        source: "docker-compose.yml"
-        target: "foodgram"
+        source: "docker-compose.production.yml"
+        target: "kittygram"
     - name: Executing remote ssh commands to deploy
       uses: appleboy/ssh-action@master
       with:
@@ -126,11 +143,20 @@ jobs:
         key: ${{ secrets.SSH_KEY }}
         passphrase: ${{ secrets.SSH_PASSPHRASE }}
         script: |
-          cd foodgram
+          cd kittygram
           sudo docker compose -f docker-compose.production.yml pull
           sudo docker compose -f docker-compose.production.yml down
           sudo docker compose -f docker-compose.production.yml up -d
           sudo docker compose -f docker-compose.production.yml exec backend python manage.py migrate
           sudo docker compose -f docker-compose.production.yml exec backend python manage.py collectstatic
           sudo docker compose -f docker-compose.production.yml exec backend cp -r /app/collected_static/. /backend_static/static/
-  
+  send_message:
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+    - name: Send message
+      uses: appleboy/telegram-action@master
+      with:
+        to: ${{ secrets.TELEGRAM_TO }}
+        token: ${{ secrets.TELEGRAM_TOKEN }}
+        message: Деплой Kittygram успешно выполнен!
