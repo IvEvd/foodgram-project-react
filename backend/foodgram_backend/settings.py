@@ -65,8 +65,6 @@ TEMPLATES = [
     },
 ]
 
-
-
 WSGI_APPLICATION = 'foodgram_backend.wsgi.application'
 
 AUTH_USER_MODEL = 'users.User'
@@ -101,7 +99,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated', 
+        'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend'
@@ -119,10 +117,10 @@ REST_FRAMEWORK = {
 DJOSER = {
     'LOGIN_FIELD': 'email',
     'HIDE_USERS': 'False',
-    }
+}
 
 SIMPLE_JWT = {
-   'USER_ID_CLAIM': 'email',
+    'USER_ID_CLAIM': 'email',
 }
 
 LANGUAGE_CODE = 'ru-RU'

@@ -9,14 +9,14 @@ admin.site.register(ShoppingCart)
 
 
 @admin.register(Tag)
-class MyModelAdmin(admin.ModelAdmin):
+class TagAdmin(admin.ModelAdmin):
     """Регистрация тэга в админке."""
 
     list_display = ('name',)
 
 
 @admin.register(Recipe)
-class MyModelAdmin(admin.ModelAdmin):
+class RecipeAdmin(admin.ModelAdmin):
     """Регистрация рецепта в админке."""
 
     def get_queryset(self, request):
@@ -38,7 +38,7 @@ class MyModelAdmin(admin.ModelAdmin):
 
 
 @admin.register(Ingredient)
-class MyModelAdmin(admin.ModelAdmin):
+class IngredientAdmin(admin.ModelAdmin):
     """Регистрация ингредиента в админке."""
 
     search_fields = ('name',)

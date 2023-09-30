@@ -1,2 +1,2 @@
-TITLE='Список покупок'
-PAGEINFO='Foodgram project by Ivan Evdokimov'
+TITLE = 'Список покупок'
+PAGEINFO = 'Foodgram project by Ivan Evdokimov'

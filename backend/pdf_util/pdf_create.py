@@ -3,13 +3,9 @@ from io import BytesIO
 from django.http import FileResponse
 
 from reportlab.lib import colors
-from reportlab.lib.units import mm, inch, cm
+from reportlab.lib.units import inch, cm
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import (
-    Frame,
-    Image,
-    PageBreak,
-    PageTemplate,
     Spacer,
     SimpleDocTemplate,
     Table,
@@ -17,13 +13,13 @@ from reportlab.platypus import (
 )
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfgen import canvas
 from reportlab.rl_config import defaultPageSize
 
 pdfmetrics.registerFont(TTFont('DejaVuSerif', 'pdf_util/DejaVuSerif.ttf'))
 
 
-PAGE_HEIGHT=defaultPageSize[1]; PAGE_WIDTH=defaultPageSize[0]
+PAGE_HEIGHT = defaultPageSize[1]
+PAGE_WIDTH = defaultPageSize[0]
 styles = getSampleStyleSheet()
 
 
@@ -41,9 +37,14 @@ class PdfCreator():
     def create_pdf_with_table(self, data):
         """Создать pdf с таблицей."""
         buffer = BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=(21*cm, 29.7*cm))
-        Story = [Spacer(1,2*inch)]
-        table = Table(data, colWidths=[9*cm, 4*cm, 3.5*cm], rowHeights=30, spaceBefore=50)
+        doc = SimpleDocTemplate(buffer, pagesize=(21 * cm, 29.7 * cm))
+        Story = [Spacer(1, 2 * inch)]
+        table = Table(
+            data,
+            colWidths=[9 * cm, 4 * cm, 3.5 * cm],
+            rowHeights=30,
+            spaceBefore=50
+        )
         table_style = ([
             ('BACKGROUND', (0, 0), (-1, 0), colors.white),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
@@ -53,22 +54,22 @@ class PdfCreator():
             ('FONTSIZE', (0, 0), (-1, -1), 12),
             ('BACKGROUND', (0, 1), (-1, -1), colors.white),
             ('GRID', (0, 0), (-1, -1), 1, colors.white),
-            ('LEFTPADDING', (0, 0), (0, -1), 0.5*cm),  # Отступ левого края первого столбца
-            ('RIGHTPADDING', (-1, 0), (-1, -1), 0.5*cm),  # Отступ правого края последнего столбца
-            ('RIGHTPADDING', (0, 0), (-1, -1), 0.5*cm),  # Расстояние между столбцами
+            ('LEFTPADDING', (0, 0), (0, -1), 0.5 * cm),
+            ('RIGHTPADDING', (-1, 0), (-1, -1), 0.5 * cm),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0.5 * cm),
         ])
         table_style.extend(
-            [('ALIGN', (0, 0), (0, -1), 'LEFT'), ]  # Выравнивание для второй колонки
+            [('ALIGN', (0, 0), (0, -1), 'LEFT'), ]
         )
         table.setStyle(TableStyle(table_style))
 
         Story.append(table)
-        
+
         doc.build(Story,
                   onFirstPage=self.myFirstPage,
                   onLaterPages=self.myLaterPages
                   )
-        
+
         buffer.seek(0)
         return FileResponse(
             buffer, as_attachment=True,
@@ -79,7 +80,9 @@ class PdfCreator():
         """Первая страница списка покупок с заголовком."""
         canvas.saveState()
         canvas.setFont('DejaVuSerif', 16)
-        canvas.drawCentredString(PAGE_WIDTH/2.0, PAGE_HEIGHT-108, self.Title)
+        canvas.drawCentredString(
+            PAGE_WIDTH / 2.0, PAGE_HEIGHT - 108, self.Title
+        )
         canvas.setFont('DejaVuSerif', 9)
         canvas.drawString(inch, 0.75 * inch, "First Page / %s" % self.pageinfo)
         canvas.restoreState()
@@ -88,9 +91,11 @@ class PdfCreator():
         """Вторая и следующие страницы списка покупок."""
         canvas.saveState()
         canvas.setFont('DejaVuSerif', 16)
-        canvas.drawCentredString(PAGE_WIDTH/2.0, PAGE_HEIGHT-54, self.Title)
+        canvas.drawCentredString(
+            PAGE_WIDTH / 2.0, PAGE_HEIGHT - 54, self.Title
+        )
         canvas.setFont('DejaVuSerif', 9)
-        canvas.drawString(inch, 0.75 * inch, "Page %d %s" % (doc.page, self.pageinfo), )
+        canvas.drawString(
+            inch, 0.75 * inch, "Page %d %s" % (doc.page, self.pageinfo),
+        )
         canvas.restoreState()
-
-#Image('pdf_util/home_chefs.png', width=5*cm, height=2.5*cm)
