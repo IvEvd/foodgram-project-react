@@ -1,14 +1,8 @@
-"""Маршрутизация для API Foodgram."""
+"""Маршрутизация приложения users."""
 
 from django.urls import include, path
 
 from rest_framework import routers
-
-from recipes.views import (
-    IngredientViewSet,
-    RecipeViewSet,
-    TagViewSet,
-)
 
 from users.views import (
     FavouriteViewSet,
@@ -17,22 +11,17 @@ from users.views import (
     SubscriptionsViewSet,
     UserViewSet
 )
-app_name = 'api'
+app_name = 'users'
 
 router = routers.DefaultRouter()
-router.register(r'ingredients', IngredientViewSet)
-router.register(r'recipes', RecipeViewSet, basename='recipes')
 router.register(r'recipes/(?P<recipe_id>\d+)/favorite', FavouriteViewSet)
 router.register(
     r'recipes/(?P<recipe_id>\d+)/shopping_cart',
     ShoppingCartViewSet
 )
-
-router.register(r'tags', TagViewSet)
 router.register(r'users/subscriptions', SubscriptionsViewSet)
 router.register(r'users/(?P<user_id>\d+)/subscribe', SubscriptionsViewSet)
 router.register(r'users', UserViewSet)
-
 
 urlpatterns = [
     path('auth/', include('djoser.urls')),

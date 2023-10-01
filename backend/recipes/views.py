@@ -8,7 +8,6 @@ from rest_framework.response import Response
 from rest_framework import (
     mixins,
     permissions,
-    status,
     viewsets,
 )
 
@@ -79,15 +78,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if self.action in ('list', 'retrieve'):
             return RecipeReadSerializer
         return RecipeWriteSerializer
-
-    def perform_create(self, serializer):
-        """Создание рецепта через API."""
-        serializer.save(author=self.request.user)
-        read_serializer = RecipeReadSerializer(
-            serializer.instance,
-            context={'request': self.request, }
-        )
-        return Response(read_serializer.data, status=status.HTTP_201_CREATED)
 
     def partial_update(self, request, pk):
         """Исправление рецепта через API."""

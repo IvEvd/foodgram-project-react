@@ -13,6 +13,9 @@ from users.models import (
     Subscription,
     User
 )
+from utils.constants.constants import (
+    SECONDS_IN_MINUTE
+)
 
 
 class FavouriteSerializer(serializers.ModelSerializer):
@@ -37,8 +40,6 @@ class FavouriteSerializer(serializers.ModelSerializer):
         return data
 
     class Meta:
-        """Мета класс."""
-
         fields = ('recipe', 'user')
         model = Favourite
 
@@ -54,8 +55,6 @@ class ShoppingCartReadSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        """Мета класс."""
-
         fields = (
             'id',
             'name',
@@ -88,8 +87,6 @@ class ShoppingCartWriteSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        """Мета класс."""
-
         fields = '__all__'
         model = ShoppingCartRecipe
 
@@ -115,8 +112,6 @@ class UserSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField()
 
     class Meta:
-        """Мета класс."""
-
         fields = (
             'email',
             'password',
@@ -155,8 +150,6 @@ class UserCreateSerializer(UserSerializer):
     """Сериализатор создания пользователя."""
 
     class Meta(UserSerializer.Meta):
-        """Мета класс."""
-
         fields = (
             'email',
             'password',
@@ -174,11 +167,11 @@ class RecipeSubscriptionReadSerializer(serializers.ModelSerializer):
 
     def get_cooking_time(self, instance):
         """Преобразование объекта timedelta в целое число минут."""
-        return int(instance.cooking_time.total_seconds() / 60)
+        return int(
+            instance.cooking_time.total_seconds() / SECONDS_IN_MINUTE
+        )
 
     class Meta:
-        """Мета класс."""
-
         fields = (
             'id',
             'name',
@@ -210,8 +203,6 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         return data
 
     class Meta:
-        """Мета класс."""
-
         fields = ('author', 'user')
         model = Subscription
 
@@ -234,6 +225,5 @@ class SubscriptionReadSerializer(serializers.ModelSerializer):
         return user_data
 
     class Meta:
-        """Мета класс."""
-    fields = '__all__'
-    model = User
+        fields = '__all__'
+        model = User

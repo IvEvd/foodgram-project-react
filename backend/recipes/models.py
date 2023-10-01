@@ -41,8 +41,6 @@ class Recipe(models.Model):
         through_fields=('recipe', 'tag'))
 
     class Meta:
-        """Мета класс."""
-
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
         ordering = ('name',)
@@ -83,8 +81,6 @@ class ShoppingCart(models.Model):
         through_fields=('shopping_cart', 'recipe'))
 
     class Meta:
-        """Мета класс."""
-
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Списки покупок'
         ordering = ('id',)
@@ -97,8 +93,6 @@ class Ingredient(models.Model):
     measurement_units = models.CharField('Единицы измерения', max_length=100)
 
     class Meta:
-        """Мета класс."""
-
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
         ordering = ('name',)
@@ -112,8 +106,6 @@ class Tag(models.Model):
     slug = models.SlugField('Слаг тэга', max_length=50, unique=True)
 
     class Meta:
-        """Мета класс."""
-
         verbose_name = 'Тэг'
         verbose_name_plural = 'Тэги'
         ordering = ('name',)
@@ -175,8 +167,6 @@ class Favourite(models.Model):
     created = models.DateTimeField('Дата комментария', auto_now_add=True)
 
     class Meta:
-        """Мета класс."""
-
         ordering = ['-created']
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранные рецепты'

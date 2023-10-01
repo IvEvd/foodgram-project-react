@@ -30,8 +30,6 @@ class IngredientSerializer(serializers.ModelSerializer):
     """Сериализатор для ингридиентов."""
 
     class Meta:
-        """Мета класс."""
-
         fields = '__all__'
         model = Ingredient
 
@@ -60,13 +58,10 @@ class RecipeIngredientReadSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         """Ингредиенты рецепта для чтения."""
         data = super().to_representation(instance)
-        amount = data['amount']
-        data['amount'] = amount.normalize()
+        data['amount'] = data['amount'] .normalize()
         return data
 
     class Meta:
-        """Мета класс."""
-
         fields = ('id', 'name', 'measurement_unit', 'amount')
         model = RecipeIngredient
         depth = 1
@@ -84,15 +79,13 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
     id = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
 
     class Meta:
-        """Мета класс."""
-
         fields = (
             'id',
             'amount',
             'ingredient'
         )
         model = RecipeIngredient
-        depth = 1
+        depth = 2
 
 
 class RecipeReadSerializer(serializers.ModelSerializer):
@@ -109,7 +102,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
 
     def get_cooking_time(self, instance):
         """Преобразование объекта timedelta в целое число минут."""
-        return int(
+        return round(
             instance.cooking_time.total_seconds() / SECONDS_IN_MINUTE
         )
 
@@ -131,8 +124,6 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         return False
 
     class Meta:
-        """Мета класс."""
-
         fields = (
             'id',
             'tags',
@@ -146,7 +137,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
             'cooking_time'
         )
         model = Recipe
-        depth = 1
+        depth = 2
 
 
 class RecipeWriteSerializer(serializers.ModelSerializer):
@@ -162,8 +153,6 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
     cooking_time = serializers.DurationField()
 
     class Meta:
-        """Мета класс."""
-
         fields = (
             'id',
             'tags',
@@ -175,10 +164,12 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             'cooking_time'
         )
         model = Recipe
+        depth = 1
 
     @transaction.atomic
     def create(self, validated_data):
         """Создание рецепта."""
+        validated_data['author'] = self.context['request'].user
         ingredients_data = validated_data.pop('ingredients')
         tags_data = validated_data.pop('tags')
         recipe = Recipe.objects.create(**validated_data)
@@ -227,7 +218,12 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         return instance
 
     def to_representation(self, instance):
-        """Возврат рецепта для чтения."""
+        """Возврат рецепта для чтения.
+
+        Необходимо чтобы ответ в момент создания рецепта соответствовал
+        спецификации API. После создания рецепта сервер вернет ответ в
+        виде всех полей RecipeReadSerializer.
+        """
         read_serializer = RecipeReadSerializer(instance, context=self.context)
         return read_serializer.data
 
@@ -243,7 +239,5 @@ class TagSerializer(serializers.ModelSerializer):
     """Сериализатор для тэгов."""
 
     class Meta:
-        """Мета класс."""
-
         fields = '__all__'
         model = Tag

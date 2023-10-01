@@ -10,8 +10,6 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
 
     class Meta:
-        """Мета класс."""
-
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
         ordering = ('id',)
@@ -50,8 +48,6 @@ class Subscription(models.Model):
             raise ValidationError('Нельзя подписаться на самого себя!')
 
     class Meta:
-        """Мета класс."""
-
         ordering = ['-created']
         verbose_name = 'Подпискa'
         verbose_name_plural = 'Подписки'
