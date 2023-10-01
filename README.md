@@ -1,7 +1,5 @@
 # praktikum_new_diplom
 
-cpB-hVRRnKzi4BtA
-
 Foodgram-project
 
 ### О проекте:
@@ -127,11 +125,11 @@ http://proulibki.com/admin/
 ```
 Основной адрес API:
 ```
-http://proulibki.com/api/v1/
+http://proulibki.com/api/
 ```
 Документация по API:
 ```
-http://proulibki.com/doc/
+http://proulibki.com/api/docs/
 ```
 
 ### Как запустить проект:
