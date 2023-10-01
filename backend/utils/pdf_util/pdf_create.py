@@ -15,7 +15,9 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.rl_config import defaultPageSize
 
-pdfmetrics.registerFont(TTFont('DejaVuSerif', 'pdf_util/DejaVuSerif.ttf'))
+pdfmetrics.registerFont(TTFont
+                        ('DejaVuSerif', 'utils/pdf_util/DejaVuSerif.ttf')
+                        )
 
 
 PAGE_HEIGHT = defaultPageSize[1]

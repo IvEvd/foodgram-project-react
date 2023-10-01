@@ -4,17 +4,19 @@ from django.urls import include, path
 
 from rest_framework import routers
 
-from .views import (
-    FavouriteViewSet,
+from recipes.views import (
     IngredientViewSet,
     RecipeViewSet,
-    ShoppingCartViewSet,
-    ShoppingCartPrintViewSet,
     TagViewSet,
-    UserViewSet,
-    SubscriptionsViewSet,
 )
 
+from users.views import (
+    FavouriteViewSet,
+    ShoppingCartViewSet,
+    ShoppingCartPrintViewSet,
+    SubscriptionsViewSet,
+    UserViewSet
+)
 app_name = 'api'
 
 router = routers.DefaultRouter()

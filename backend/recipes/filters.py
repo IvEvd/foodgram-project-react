@@ -15,7 +15,9 @@ class IngredientFilter(djangofilters.FilterSet):
         началом
         """
         name = self.data.get('name')
-        if name:
+        if not name:
+            return queryset
+        else:
             queryset = queryset.annotate(
                 starts_with_search=Case(
                     When(name__startswith=name, then=Value(0)),
@@ -30,4 +32,4 @@ class IngredientFilter(djangofilters.FilterSet):
                      ).order_by('starts_with_search',
                                 'contains_search', 'name'
                                 )
-        return queryset
+            return queryset
