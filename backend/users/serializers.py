@@ -219,15 +219,6 @@ class SubscriptionSerializer(serializers.ModelSerializer):
 class SubscriptionReadSerializer(serializers.ModelSerializer):
     """Сериалайзер чтения подписок."""
 
-    class Meta:
-        """Мета класс."""
-    fields = '__all__'
-    model = User
-
-
-class SubscriptionReadSerializer(serializers.ModelSerializer):
-    """Сериалайзер чтения подписок."""
-
     def to_representation(self, obj):
         """Вывод данных в выдачу."""
         author = obj.author
